@@ -27,7 +27,7 @@ Your network · your firewall · or Telegram itself. The tool tells you which, a
 
 ```bash
 /bin/bash -c "$(curl --proto '=https' --tlsv1.2 -fsSL \
-  https://raw.githubusercontent.com/talkstream/telegram-ipv6-doctor/v1.0.0/telegram-ipv6-doctor.sh)"
+  https://raw.githubusercontent.com/talkstream/telegram-ipv6-doctor/v1.0.1/telegram-ipv6-doctor.sh)"
 ```
 
 It **reads, it does not touch anything.** No sudo, no changes, no telemetry. It prints a verdict.
@@ -36,7 +36,7 @@ Prefer to look before you run? That is the better habit — and the URL above is
 actually means something:
 
 ```bash
-curl --proto '=https' --tlsv1.2 -fsSLO https://raw.githubusercontent.com/talkstream/telegram-ipv6-doctor/v1.0.0/telegram-ipv6-doctor.sh
+curl --proto '=https' --tlsv1.2 -fsSLO https://raw.githubusercontent.com/talkstream/telegram-ipv6-doctor/v1.0.1/telegram-ipv6-doctor.sh
 shasum -a 256 telegram-ipv6-doctor.sh    # compare with the checksum in the release notes
 less telegram-ipv6-doctor.sh
 bash telegram-ipv6-doctor.sh
@@ -67,7 +67,7 @@ how to blame IPv6 would have lied. See [`docs/FINDINGS.md`](docs/FINDINGS.md).
 ## The fix
 
 ```bash
-/bin/bash -c "$(curl -fsSL .../v1.0.0/telegram-ipv6-doctor.sh)" _ fix     # note the "_" — bash eats the first argument without it
+/bin/bash -c "$(curl -fsSL .../v1.0.1/telegram-ipv6-doctor.sh)" _ fix     # note the "_" — bash eats the first argument without it
 ```
 
 **Surgical by default.** It installs reject-routes for **only** those Telegram IPv6 prefixes it has just

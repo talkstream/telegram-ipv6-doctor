@@ -19,6 +19,7 @@ setup() {
   # every fake reads its behaviour from these
   export FAKE_V4_OK=1 FAKE_V6_DC=fail FAKE_V6_CONTROL=ok FAKE_HAS_V6=1
   export FAKE_NAT64=0 FAKE_PROXY=0 FAKE_VPN=0 FAKE_FILTER="" FAKE_FILTER_EVENTS=0
+  export FAKE_CLIENT_PID="" FAKE_CHURN=0 FAKE_LIVE=6
   export TGD_TG_GROUP="${BATS_TEST_DIRNAME}/fixtures/quiet"
   export SUDO_CALLED_FILE="${BATS_TEST_TMPDIR}/sudo_calls"
   export NET_CALLED_FILE="${BATS_TEST_TMPDIR}/net_calls"
@@ -49,10 +50,22 @@ run_doctor() { run /bin/bash "$DOCTOR" --no-color --lang en "$@"; }
   [[ "$output" == *'"verdict": "healthy"'* ]]
 }
 
-@test "local filter tearing sockets down beats any network story" {
+@test "local filter blamed ONLY when the client is actually struggling" {
   export FAKE_FILTER="Little Snitch" FAKE_FILTER_EVENTS=1735
+  export FAKE_CLIENT_PID=999 FAKE_CHURN=20 FAKE_LIVE=3
   run_doctor --json
   [[ "$output" == *'"verdict": "local-filter-interference"'* ]]
+}
+
+@test "noisy filter logs alone are NOT evidence — a healthy client is not blamed on them" {
+  # Learned on a live machine: a filter logs "socket closed during DPI without data" for the
+  # client's own losing race candidates. 1735 such lines with zero churn means nothing.
+  export FAKE_FILTER="Little Snitch" FAKE_FILTER_EVENTS=1735
+  export FAKE_CLIENT_PID=999 FAKE_CHURN=0 FAKE_LIVE=18
+  export FAKE_V6_DC=ok
+  run_doctor --json
+  [[ "$output" != *"local-filter-interference"* ]]
+  [[ "$output" == *'"verdict": "healthy"'* ]]
 }
 
 @test "IPv6-only / NAT64 network is recognised" {
@@ -112,6 +125,7 @@ run_doctor() { run /bin/bash "$DOCTOR" --no-color --lang en "$@"; }
 
 @test "fix refuses while a local filter is tearing sockets down" {
   export FAKE_FILTER="Little Snitch" FAKE_FILTER_EVENTS=1735
+  export FAKE_CLIENT_PID=999 FAKE_CHURN=20 FAKE_LIVE=3
   run_doctor fix --yes
   [ "$status" -ne 0 ]
   [ ! -s "$SUDO_CALLED_FILE" ]

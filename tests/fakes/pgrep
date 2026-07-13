@@ -1,2 +1,4 @@
 #!/bin/bash
+# pretend Telegram is running only when the test wants a client
+[ -n "${FAKE_CLIENT_PID:-}" ] && { echo "$FAKE_CLIENT_PID"; exit 0; }
 exit 1

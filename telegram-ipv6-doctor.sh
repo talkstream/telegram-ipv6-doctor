@@ -24,7 +24,7 @@
 #
 set -u
 
-VERSION="1.0.0"
+VERSION="1.0.1"
 
 # ---------------------------------------------------------------------------
 # Constants — Telegram infrastructure
@@ -88,6 +88,8 @@ VPN_ACTIVE=0
 CLIENT_NAME=""
 CLIENT_VERSION=""
 CLIENT_PID=""
+CLIENT_CHURN=0          # sockets sitting in CLOSED — the honest signal of a struggling client
+CLIENT_LIVE=0
 LOG_404=0
 LOG_RESET=0
 LOG_GETCONFIG=0
@@ -322,8 +324,14 @@ scan_host() {
     CLIENT_PID=$(pgrep -f 'Telegram Desktop' 2>/dev/null | head -1)
   fi
 
+  if [ -n "$CLIENT_PID" ]; then
+    CLIENT_CHURN=$(lsof -nP -iTCP -a -p "$CLIENT_PID" 2>/dev/null | grep -c CLOSED)
+    CLIENT_LIVE=$(lsof -nP -iTCP -a -p "$CLIENT_PID" 2>/dev/null | grep -c ESTABLISHED)
+  fi
+
   if [ -n "$CLIENT_NAME" ]; then
     ok "$CLIENT_NAME ${CLIENT_VERSION:-} ${CLIENT_PID:+(pid $CLIENT_PID)}"
+    [ "${CLIENT_CHURN:-0}" -ge 8 ] && warn "sockets churning: ${CLIENT_LIVE:-0} live / ${CLIENT_CHURN} dead"
   else
     warn "$(t no_client)"
   fi
@@ -532,8 +540,14 @@ decide() {
     VERDICT="inconclusive"; VERDICT_DETAIL="$(t v_incon)|$(t r_incon)"; return
   fi
 
-  # 3. A local filter tearing sockets down beats any network story.
-  if [ -n "$FILTER_ACTIVE" ] && [ "${FILTER_EVENTS:-0}" -gt 50 ]; then
+  # 3. A local filter *may* be interfering — but only if the client is actually in distress.
+  #
+  #    Learned the hard way: "Socket closed during DPI without data" is ALSO what a filter logs
+  #    when MTProtoKit races candidate connections (v4/v6 × ports 443/80/5222) and closes the
+  #    losers without sending data. On a perfectly healthy machine that line can fire ~160×/min.
+  #    Counting those events alone therefore proves nothing — the client must also be visibly
+  #    struggling (sockets churning) before we point at the filter.
+  if [ -n "$FILTER_ACTIVE" ] && [ "${FILTER_EVENTS:-0}" -gt 50 ] && [ "${CLIENT_CHURN:-0}" -ge 8 ]; then
     VERDICT="local-filter-interference"
     VERDICT_DETAIL="$(t v_filter) ($FILTER_ACTIVE)|$(t r_filter)"; return
   fi
@@ -612,7 +626,7 @@ run_diagnose() {
   show_verdict
   local self="$0"
   # shellcheck disable=SC2016  # the $(curl …) below is literal text we show the user
-  case "$self" in /bin/bash|bash|-bash|/bin/sh|sh) self='/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/talkstream/telegram-ipv6-doctor/v1.0.0/telegram-ipv6-doctor.sh)" _' ;; esac
+  case "$self" in /bin/bash|bash|-bash|/bin/sh|sh) self='/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/talkstream/telegram-ipv6-doctor/v1.0.1/telegram-ipv6-doctor.sh)" _' ;; esac
   printf '  %sreport: %s report   ·   fix: %s fix%s\n\n' "$C_DIM" "$self" "$self" "$C_RESET"
 }
 
@@ -624,6 +638,7 @@ emit_json() {
   printf '  "controls_healthy": %s, "controls_total": %s,\n' "$CONTROLS_HEALTHY" "$CONTROLS_TOTAL"
   printf '  "ipv6_up": %s, "nat64": %s, "proxy": %s, "vpn": %s,\n' "$HAS_V6" "$NAT64" "$PROXY_SET" "$VPN_ACTIVE"
   printf '  "filter": "%s", "filter_teardowns_10m": %s,\n' "$FILTER_ACTIVE" "${FILTER_EVENTS:-0}"
+  printf '  "client_sockets": {"live": %s, "churning": %s},\n' "${CLIENT_LIVE:-0}" "${CLIENT_CHURN:-0}"
   printf '  "client_log": {"error_404": %s, "resets": %s, "getconfig": %s},\n' "${LOG_404:-0}" "${LOG_RESET:-0}" "${LOG_GETCONFIG:-0}"
   printf '  "broken_prefixes": "%s"\n' "$(printf '%s' "$BROKEN_PREFIXES" | sed 's/ *$//')"
   printf '}\n'
@@ -819,7 +834,8 @@ run_report() {
 **Data centers** — IPv4 reachable: $V4_OK/5 · IPv6 reachable: $V6_OK · IPv6 failing: $V6_FAIL
 **IPv6 controls** healthy: $CONTROLS_HEALTHY/$CONTROLS_TOTAL
 **IPv6 on interface:** $HAS_V6 · **NAT64:** $NAT64 · **proxy:** $PROXY_SET · **VPN:** $VPN_ACTIVE
-**Local network filter:** ${FILTER_ACTIVE:-none} · socket teardowns of Telegram (10 min): ${FILTER_EVENTS:-0}
+**Local network filter:** ${FILTER_ACTIVE:-none} · socket teardowns logged (10 min): ${FILTER_EVENTS:-0} — note: a filter logs these for the client's own losing race candidates too, so the count alone is not evidence
+**Client sockets:** ${CLIENT_LIVE:-0} live / ${CLIENT_CHURN:-0} churning
 **Client log counters:** protocol error -404 ×${LOG_404:-0} · resetting session ×${LOG_RESET:-0} · getConfig ×${LOG_GETCONFIG:-0}
 **Telegram IPv6 prefixes proven broken:** ${BROKEN_PREFIXES:-none}
 

@@ -27,7 +27,7 @@
 
 ```bash
 /bin/bash -c "$(curl --proto '=https' --tlsv1.2 -fsSL \
-  https://raw.githubusercontent.com/talkstream/telegram-ipv6-doctor/v1.0.0/telegram-ipv6-doctor.sh)"
+  https://raw.githubusercontent.com/talkstream/telegram-ipv6-doctor/v1.0.1/telegram-ipv6-doctor.sh)"
 ```
 
 Она **только читает и ничего не трогает**: без sudo, без изменений, без телеметрии. На выходе — вердикт.
@@ -36,7 +36,7 @@
 сверить контрольную сумму имеет смысл:
 
 ```bash
-curl --proto '=https' --tlsv1.2 -fsSLO https://raw.githubusercontent.com/talkstream/telegram-ipv6-doctor/v1.0.0/telegram-ipv6-doctor.sh
+curl --proto '=https' --tlsv1.2 -fsSLO https://raw.githubusercontent.com/talkstream/telegram-ipv6-doctor/v1.0.1/telegram-ipv6-doctor.sh
 shasum -a 256 telegram-ipv6-doctor.sh    # сверьте с контрольной суммой в описании релиза
 less telegram-ipv6-doctor.sh
 bash telegram-ipv6-doctor.sh
@@ -67,7 +67,7 @@ bash telegram-ipv6-doctor.sh
 ## Фикс
 
 ```bash
-/bin/bash -c "$(curl -fsSL .../v1.0.0/telegram-ipv6-doctor.sh)" _ fix     # символ «_» обязателен: без него bash съедает первый аргумент
+/bin/bash -c "$(curl -fsSL .../v1.0.1/telegram-ipv6-doctor.sh)" _ fix     # символ «_» обязателен: без него bash съедает первый аргумент
 ```
 
 **По умолчанию — точечный.** Инструмент ставит reject-маршруты **только** на те IPv6-префиксы Telegram,

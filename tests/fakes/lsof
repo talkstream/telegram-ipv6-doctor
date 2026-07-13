@@ -1,0 +1,7 @@
+#!/bin/bash
+# emit FAKE_CHURN sockets in CLOSED and FAKE_LIVE in ESTABLISHED
+i=0
+while [ "$i" -lt "${FAKE_LIVE:-4}" ]; do echo "Telegram 1 u IPv4 TCP 1.2.3.4:1->5.6.7.8:443 (ESTABLISHED)"; i=$((i+1)); done
+i=0
+while [ "$i" -lt "${FAKE_CHURN:-0}" ]; do echo "Telegram 1 u IPv4 TCP 1.2.3.4:1->5.6.7.8:443 (CLOSED)"; i=$((i+1)); done
+exit 0
