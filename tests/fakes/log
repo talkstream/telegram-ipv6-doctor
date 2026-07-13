@@ -1,0 +1,5 @@
+#!/bin/bash
+# fake `log show`: emit FAKE_FILTER_EVENTS teardown lines
+n="${FAKE_FILTER_EVENTS:-0}"; i=0
+while [ "$i" -lt "$n" ]; do echo "Socket closed during DPI without data: Telegram → 1.2.3.4:443"; i=$((i+1)); done
+exit 0

@@ -1,0 +1,5 @@
+#!/bin/bash
+# The tool must never fetch anything at runtime: a remote list steering root-level route
+# changes is exactly the supply-chain hole we refuse to have.
+echo "NETWORK FETCH ATTEMPTED: $*" >> "${NET_CALLED_FILE:-/dev/null}"
+exit 1

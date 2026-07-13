@@ -1,0 +1,15 @@
+#!/bin/bash
+case "${1:-}" in
+  --nwi)
+    echo "IPv4 network interface information"
+    echo "     en0 : flags : 0x5 (IPv4,DNS)"
+    if [ "${FAKE_HAS_V6:-1}" = "1" ]; then
+      echo "IPv6 network interface information"
+      echo "     en0 : flags : 0x7 (IPv4,IPv6,DNS)"
+    else
+      echo "IPv6 network interface information"
+      echo "   No IPv6 states found"
+    fi ;;
+  --proxy)
+    [ "${FAKE_PROXY:-0}" = "1" ] && echo "  HTTPEnable : 1" || echo "  FTPPassive : 1" ;;
+esac

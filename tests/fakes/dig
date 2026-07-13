@@ -1,0 +1,3 @@
+#!/bin/bash
+case "$*" in *ipv4only.arpa*) [ "${FAKE_NAT64:-0}" = "1" ] && echo "64:ff9b::c000:aa" ;; esac
+exit 0

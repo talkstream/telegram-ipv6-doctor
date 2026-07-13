@@ -1,0 +1,5 @@
+#!/bin/bash
+if [ -n "${FAKE_FILTER:-}" ]; then
+  echo "*  *  MLZF7K7B5R  at.obdev.littlesnitch.networkextension (6.5/7300)  Little Snitch  [activated enabled]"
+fi
+exit 0

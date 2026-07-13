@@ -1,0 +1,11 @@
+#!/bin/bash
+# fake nc: the last two arguments are always <host> <port> (BSD nc invocation used by the tool)
+eval "host=\${$(($#-1))}"
+case "$host" in
+  *:*)
+    case "$host" in
+      2001:b28:*|2001:67c:4e8:*) [ "${FAKE_V6_DC:-fail}" = "ok" ] && exit 0 || exit 1 ;;
+      *)                         [ "${FAKE_V6_CONTROL:-ok}" = "ok" ] && exit 0 || exit 1 ;;
+    esac ;;
+  *) [ "${FAKE_V4_OK:-1}" = "1" ] && exit 0 || exit 1 ;;
+esac

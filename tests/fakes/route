@@ -1,0 +1,6 @@
+#!/bin/bash
+case "${*}" in
+  *"get default"*) echo "   interface: en0" ;;
+  *add*|*delete*)  echo "ROUTE MUTATION ATTEMPTED: $*" >> "${SUDO_CALLED_FILE:-/dev/null}"; exit 1 ;;
+esac
+exit 0

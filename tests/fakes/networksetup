@@ -1,0 +1,8 @@
+#!/bin/bash
+case "${1:-}" in
+  -listnetworkserviceorder) echo "(1) Wi-Fi"; echo "(Hardware Port: Wi-Fi, Device: en0)" ;;
+  -listallnetworkservices)  echo "An asterisk (*) denotes..."; echo "Wi-Fi" ;;
+  -getinfo)                 echo "IP address: 10.0.0.2"; [ "${FAKE_HAS_V6:-1}" = "1" ] && echo "IPv6: Automatic" || echo "IPv6: Off" ;;
+  -setv6*)                  echo "NETWORKSETUP MUTATION ATTEMPTED: $*" >> "${SUDO_CALLED_FILE:-/dev/null}"; exit 1 ;;
+esac
+exit 0
