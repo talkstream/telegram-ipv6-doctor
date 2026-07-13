@@ -1,0 +1,44 @@
+name: Telegram CIDR freshness
+
+# The reject-prefix list is a compile-time constant on purpose (a hijacked remote list would
+# mean blackholing arbitrary networks with root). Freshness is therefore a human-reviewed PR,
+# never a runtime fetch.
+
+on:
+  schedule: [{ cron: '17 6 * * 1' }]   # Mondays
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: compare official list with our constant
+        id: diff
+        run: |
+          curl --proto '=https' --tlsv1.2 -fsSL https://core.telegram.org/resources/cidr.txt \
+            | grep ':' | sort > /tmp/official.txt
+          grep '^TG_V6_PREFIXES=' telegram-ipv6-doctor.sh \
+            | sed 's/.*="//; s/"$//' | tr ' ' '\n' | sort > /tmp/ours.txt
+          if diff -u /tmp/ours.txt /tmp/official.txt > /tmp/delta.txt; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            cat /tmp/delta.txt
+          fi
+      - name: open an issue when Telegram's list moved
+        if: steps.diff.outputs.changed == 'true'
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const fs = require('fs');
+            const delta = fs.readFileSync('/tmp/delta.txt', 'utf8');
+            await github.rest.issues.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              title: 'Telegram published-CIDR list has changed — review TG_V6_PREFIXES',
+              body: 'The official list at core.telegram.org/resources/cidr.txt differs from the constant in the script.\n\n```diff\n' + delta + '\n```\n\nUpdate `TG_V6_PREFIXES` only after checking the prefixes are genuinely Telegram-announced (RIPEstat / whois).'
+            });

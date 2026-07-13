@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push: { branches: [main] }
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: shellcheck
+        run: shellcheck -s bash telegram-ipv6-doctor.sh tests/fakes/*
+      - name: shfmt (advisory)
+        run: |
+          curl -fsSL -o /tmp/shfmt https://github.com/mvdan/sh/releases/download/v3.10.0/shfmt_v3.10.0_linux_amd64
+          chmod +x /tmp/shfmt
+          /tmp/shfmt -d -i 2 -ci telegram-ipv6-doctor.sh || true
+
+  test:
+    # macOS runners give us the real bash 3.2 + BSD userland the tool targets.
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: bash version (must be 3.2 — the tool targets stock macOS)
+        run: /bin/bash --version | head -1
+      - name: syntax check under stock bash
+        run: /bin/bash -n telegram-ipv6-doctor.sh
+      - name: install bats
+        run: brew install bats-core
+      - name: run offline test-suite
+        run: bats tests/doctor.bats

@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 396" width="760" height="396" role="img" aria-label="Example run of telegram-ipv6-doctor showing a degraded-IPv6-to-Telegram verdict">
+  <defs>
+    <style>
+      .m  { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12.5px; }
+      .fg { fill: #cbd6e6 } .dim { fill: #6f8098 } .blue { fill: #2AABEE }
+      .ok { fill: #2fd08a } .warn { fill: #f0a83c } .bad { fill: #ff5d5d } .bold { font-weight: 700 }
+    </style>
+  </defs>
+
+  <rect width="760" height="396" rx="12" fill="#0b1017"/>
+  <rect width="760" height="30" rx="12" fill="#141c28"/>
+  <rect y="18" width="760" height="12" fill="#141c28"/>
+  <circle cx="20" cy="15" r="5" fill="#ff5f57"/><circle cx="38" cy="15" r="5" fill="#febc2e"/><circle cx="56" cy="15" r="5" fill="#28c840"/>
+  <text class="m dim" x="300" y="19">telegram-ipv6-doctor</text>
+
+  <g class="m">
+    <text x="18" y="52" class="dim">$ /bin/bash -c "$(curl -fsSL .../telegram-ipv6-doctor.sh)"</text>
+
+    <text x="18" y="80"><tspan class="blue bold">telegram-ipv6-doctor</tspan><tspan class="dim"> v1.0.0</tspan></text>
+    <text x="18" y="98" class="dim">Why is Telegram stuck on “Connecting” — your network, a local filter, or the client?</text>
+
+    <text x="18" y="126"><tspan class="blue">·</tspan><tspan class="fg"> Host &amp; client</tspan></text>
+    <text x="40" y="144" class="dim">macOS 27.0 · arm64</text>
+    <text x="40" y="162"><tspan class="ok">✓</tspan><tspan class="fg"> Telegram for macOS (native) 12.8 (pid 23787)</tspan></text>
+
+    <text x="18" y="188"><tspan class="blue">·</tspan><tspan class="fg"> Local filters</tspan></text>
+    <text x="40" y="206"><tspan class="ok">✓</tspan><tspan class="fg"> no third-party network filter</tspan></text>
+
+    <text x="18" y="232"><tspan class="blue">·</tspan><tspan class="fg"> Data-center probes</tspan></text>
+    <text x="40" y="250" class="dim">DC   IPv4       IPv6</text>
+    <text x="40" y="268"><tspan class="fg">1    300 ms    </tspan><tspan class="bad">timeout</tspan></text>
+    <text x="40" y="286"><tspan class="fg">2    238 ms    </tspan><tspan class="bad">timeout</tspan></text>
+    <text x="40" y="304"><tspan class="fg">5    65 ms     </tspan><tspan class="bad">timeout</tspan></text>
+    <text x="40" y="322" class="dim">IPv6 controls healthy: 3/3  ·  IPv4 ▃▃▃▂▃  IPv6 █████</text>
+
+    <line x1="18" y1="340" x2="742" y2="340" stroke="#243044" stroke-width="1"/>
+    <text x="18" y="360"><tspan class="dim">VERDICT  </tspan><tspan class="bad bold">IPv6 routing to Telegram is broken</tspan></text>
+    <text x="18" y="378" class="dim">Surgical fix: reject only the IPv6 addresses of Telegram — the rest of your IPv6 keeps working.</text>
+  </g>
+</svg>
