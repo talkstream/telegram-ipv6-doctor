@@ -51,61 +51,66 @@ The `-404` storm stopped and has not returned since — including through everyt
 
 ---
 
-## Act II — the same Mac stalled again, and IPv6 was innocent this time (same night)
+## Act II — the same Mac stalled again, and my second diagnosis was wrong too
 
-Hours later, with IPv6 still off and `-404` still at zero, Telegram began stalling again.
+Hours later, with IPv6 still off and `-404` still at zero, Telegram began stalling again. The network measured
+**clean**: TCP connect probes from a *different process* to the very same data centres completed in 60–300 ms
+with no loss. Yet the client's sockets churned (20+ in `CLOSED` at any moment).
 
-The network was **clean**: TCP connect probes from a *different process* to the very same data centres
-completed in 60–300 ms with no loss, sampled every 6 s for minutes. Yet the client’s sockets were churning
-(20+ in `CLOSED` at any moment).
-
-The culprit was local. A **nightly build of Little Snitch** (6.5 nightly, build 7300 — the only build that
-supports macOS 27) was tearing Telegram’s sockets down inside its own deep-packet-inspection stage:
+A nightly build of a DPI firewall (Little Snitch 6.5 nightly, build 7300 — the only build supporting macOS 27)
+was logging, at the same time:
 
 ```
-Socket closed during DPI without data: LSSocketFlow /Applications/Telegram.app/…
-  → 149.154.175.58:443 status=DPI connectName=<nil>
+Socket closed during DPI without data: LSSocketFlow /Applications/Telegram.app/… → 149.154.175.58:443
+  status=DPI connectName=<nil>
 ```
 
-Event counts, same machine, same day:
+1735 of them in the 10 minutes of the stall, versus 0–7 in quiet windows. I ran an A-B-A test on the filter,
+saw the churn vanish when it was off, and **concluded the filter was tearing the sockets down**. I sent that
+to the vendor.
 
-| window | “Socket closed during DPI without data” (Telegram) | state |
-|---|---|---|
-| 21:45–21:55 | 7 | healthy |
-| 22:30–22:40 | **0** | healthy |
-| 23:15–23:25 | 2 | healthy |
-| **23:37–23:47** | **1735** | **stalling** |
-| 23:52–23:55 | 1 | **filter disabled** |
+**That conclusion was wrong, and here is how it died.**
 
-**A‑B‑A test** (filter off → on), sampling the client’s sockets every 5 s:
+- The A-B-A phases were **2.5–3 minutes long** — on a phenomenon that is episodic (quiet for an hour, then a
+  burst). When the filter went back on, the storm did *not* return inside the window. I noticed, and concluded
+  anyway.
+- Later, with the filter showing **“Disabled”**, the same log line fired at **~160/min while Telegram was
+  perfectly healthy** (18 established, 0 closed, CPU 5–16 %) — essentially the rate seen during the stall
+  (~174/min).
 
-| phase | avg CLOSED sockets |
-|---|---|
-| filter ON (during stall) | **20.7** |
-| filter OFF | **0.2** |
-| filter ON again | 0.2 — the storms are episodic and did not recur inside the 2.5‑minute window; the DPI-close events, however, returned at once (84 in 3 min) |
+A signal that cannot distinguish health from failure is not evidence. And the “events dropped to zero when I
+disabled the filter” observation was **circular**: a disabled filter stops *logging*.
 
-There were **zero** deny/block events: Telegram’s rules were `allow any outgoing`. The sockets were not
-being blocked — they were dying at the inspection stage.
+**What those lines almost certainly are:** MTProtoKit races candidate connections — IPv4 and IPv6, ports
+443/80/5222 — and closes the losers **without ever sending data**. That is exactly what the message describes.
+The count is a proxy for how many candidates the client opens, nothing more.
 
-This has been [reported to the vendor](https://www.obdev.at/products/littlesnitch/) with the full data.
+The vendor ticket has been corrected. And the tool's `local-filter-interference` verdict, which originally
+fired on this count alone, now requires the client to be **observably struggling** as well (see
+[CHANGELOG](../CHANGELOG.md), v1.0.1) — the false positive is the reason that release exists.
 
----
+## What is still unexplained
 
-## What this means (and what it does not)
+The late-night episode — the client churning connections while the network measures clean, plus system-wide
+slowness (the browser stalls too) — has **no established cause**. The open hypotheses:
 
-- **Both causes were real, and they are distinguishable.** During the Act I storm, the filter’s
-  teardown events were at background level (31 / 10 min); during the Act II storm, the client’s `-404`
-  counter was **zero**. Different signatures, different culprits.
-- **Honest caveat.** The buggy filter build was installed during Act I too, and the Act I intervention was
-  compound (IPv6 off *and* a restart). The IPv6 conclusion rests on the log evidence (v6 connect timeouts,
-  `-404` semantics) and on `-404` staying at zero for hours afterwards — but a single, perfectly isolated
-  experiment it was not. We say so rather than pretend otherwise.
-- **This is why the tool discriminates.** A tool that only knows how to blame IPv6 would have “fixed” a
-  machine whose problem was a firewall — and told its owner to go argue with their ISP. `local-filter-interference`
-  is a first-class verdict, evaluated *before* any network verdict, precisely because of this night.
+- **Our own fix.** With IPv6 disabled at the interface, the client keeps attempting its hardcoded IPv6 DC
+  endpoints (they appear in the logs); each fails instantly, which could drive a hot retry loop.
+- **A beta OS.** macOS 27 is a developer beta; its network stack is in the path of everything.
+- **The filter, still.** A nightly network extension stays in the datapath even when “disabled” (it keeps
+  logging), so the GUI toggle was never a clean A/B in the first place.
+- **The ISP.** Residential CGNAT can silently drop long-lived NAT state while fresh connections keep working.
 
----
+That last line matters, because it names the thing every one of my probes was blind to: **every probe was a
+*fresh* connect, and fresh connects were always clean.** The signature that fits all the observations is
+*long-lived connections dying while new ones succeed* — Telegram's MTProto sessions are long-lived, and so is
+a browser's HTTP/2 connection. A long-lived-connection canary (several TCP connections held open with
+different idle intervals, recording when each dies) is now running, alongside hours of continuous telemetry
+joined to the user's own "it's lagging now" marks.
+
+**The methodological lesson, stated plainly because it cost two retractions:** both wrong conclusions died the
+same death — an intervention coincided with an episode ending on its own. Minutes cannot characterise an
+episodic fault. Hours can, and only if the ground truth comes from the person using the machine.
 
 ## What Telegram’s client does, precisely (verified in source)
 

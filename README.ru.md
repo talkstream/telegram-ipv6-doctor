@@ -10,7 +10,7 @@
 
 [![CI](https://github.com/talkstream/telegram-ipv6-doctor/actions/workflows/ci.yml/badge.svg)](https://github.com/talkstream/telegram-ipv6-doctor/actions/workflows/ci.yml)
 [![shellcheck](https://img.shields.io/badge/shellcheck-clean-2fd08a)](https://www.shellcheck.net/)
-[![tests](https://img.shields.io/badge/тестов-18%20офлайн-2fd08a)](tests/doctor.bats)
+[![tests](https://img.shields.io/badge/тестов-19%20офлайн-2fd08a)](tests/doctor.bats)
 [![macOS](https://img.shields.io/badge/macOS-12%2B-000?logo=apple)](#)
 [![bash](https://img.shields.io/badge/bash-3.2%20(штатный)-4EAA25?logo=gnubash&logoColor=white)](#)
 [![deps](https://img.shields.io/badge/зависимостей-ноль-2AABEE)](#)

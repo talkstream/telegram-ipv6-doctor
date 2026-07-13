@@ -10,7 +10,7 @@ Your network · your firewall · or Telegram itself. The tool tells you which, a
 
 [![CI](https://github.com/talkstream/telegram-ipv6-doctor/actions/workflows/ci.yml/badge.svg)](https://github.com/talkstream/telegram-ipv6-doctor/actions/workflows/ci.yml)
 [![shellcheck](https://img.shields.io/badge/shellcheck-clean-2fd08a)](https://www.shellcheck.net/)
-[![tests](https://img.shields.io/badge/tests-18%20offline-2fd08a)](tests/doctor.bats)
+[![tests](https://img.shields.io/badge/tests-19%20offline-2fd08a)](tests/doctor.bats)
 [![macOS](https://img.shields.io/badge/macOS-12%2B-000?logo=apple)](#)
 [![bash](https://img.shields.io/badge/bash-3.2%20(stock)-4EAA25?logo=gnubash&logoColor=white)](#)
 [![deps](https://img.shields.io/badge/dependencies-zero-2AABEE)](#)
@@ -54,15 +54,18 @@ client’s own log counters and at any local network filter, and then tells them
 |---|---|---|
 | **degraded IPv6 to Telegram** | IPv6 to Telegram’s data centres times out, IPv4 to the same DCs is fine, and IPv6 to the rest of the internet is healthy | offers the surgical fix ↓ |
 | **IPv6 broken everywhere** | IPv6 fails to everything, not just Telegram | offers to switch IPv6 off on the interface |
-| **local filter interference** | The network is clean, but a firewall/AV (Little Snitch, LuLu…) is tearing Telegram’s sockets down | **does not touch your network** — tells you to test the filter |
+| **local filter interference** | The network is clean, the client *is* struggling (sockets churning), and a firewall/AV is in the path | **does not touch your network** — tells you how to test the filter properly |
 | **blocked / DPI** | Connections open and are reset immediately | tells you to use MTProxy; refuses to “fix” anything |
 | **client-side loop** | Network is fine, the client is looping | suggests a restart / Telegram support |
 | **IPv6-only network (NAT64)** | There is no IPv4 path at all | **refuses every mutation** — the fix would cut you off |
 | **healthy** | No network problem visible | nothing to do |
 
-That third row exists because it happened to us: after fixing a real IPv6 problem, the same Mac started
-stalling again — and the culprit was a nightly build of a DPI firewall, not the ISP. A tool that only knows
-how to blame IPv6 would have lied. See [`docs/FINDINGS.md`](docs/FINDINGS.md).
+That third row exists because a tool that only knows how to blame IPv6 will blame IPv6 — even when the real
+problem is a local filter, or the client itself. But note the discipline it took to get that row *right*:
+our first version fired it on a filter's log-line count alone, and that was a **false positive** — those lines
+are also what a filter logs when Telegram races candidate connections and closes the losers. The verdict now
+requires the client to be visibly struggling too. The full, unflattering story — including two causal claims
+we had to withdraw — is in [`docs/FINDINGS.md`](docs/FINDINGS.md).
 
 ## The fix
 
@@ -119,7 +122,7 @@ no SSID, no account names, no paths.
 - **Bash 3.2**, the version stock macOS ships. Zero dependencies — `nc`, `route`, `scutil`, `perl` are all in the base system.
 - Telegram’s IPv6 prefixes are a **compile-time constant**, taken from [Telegram’s published network list](https://core.telegram.org/resources/cidr.txt) and cross-checked against live BGP. They are never fetched at runtime: a hijacked remote list would mean blackholing arbitrary networks *with root*. A weekly CI job diffs the official list and opens a PR instead.
 - Only prefixes **proven broken on your machine** are ever rejected. Nothing “just in case”.
-- 18 offline tests (bats + fake binaries) cover every verdict, every refusal, and the privacy of the report.
+- 19 offline tests (bats + fake binaries) cover every verdict, every refusal, and the privacy of the report.
 
 Details: [`docs/SAFETY.md`](docs/SAFETY.md) · Evidence: [`docs/FINDINGS.md`](docs/FINDINGS.md) ·
 For Telegram’s engineers: [`docs/UPSTREAM.md`](docs/UPSTREAM.md)
