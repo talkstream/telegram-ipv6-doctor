@@ -1,6 +1,13 @@
 #!/bin/bash
-# fake nc: the last two arguments are always <host> <port> (BSD nc invocation used by the tool)
-eval "host=\${$(($#-1))}"
+# fake nc: the tool always invokes it as `nc [flags] <host> <port>`, so the host is the
+# second-to-last argument. No eval — shellcheck must be able to see the assignment.
+host=""
+prev=""
+for a in "$@"; do
+  prev="$host"
+  host="$a"
+done
+host="$prev"   # second-to-last argument
 case "$host" in
   *:*)
     case "$host" in

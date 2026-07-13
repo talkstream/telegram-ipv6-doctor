@@ -610,7 +610,10 @@ run_diagnose() {
   scan_logs
   decide
   show_verdict
-  printf '  %sreport: %s _ report   ·   fix: %s _ fix%s\n\n' "$C_DIM" "$0" "$0" "$C_RESET"
+  local self="$0"
+  # shellcheck disable=SC2016  # the $(curl …) below is literal text we show the user
+  case "$self" in /bin/bash|bash|-bash|/bin/sh|sh) self='/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/talkstream/telegram-ipv6-doctor/v1.0.0/telegram-ipv6-doctor.sh)" _' ;; esac
+  printf '  %sreport: %s report   ·   fix: %s fix%s\n\n' "$C_DIM" "$self" "$self" "$C_RESET"
 }
 
 emit_json() {
